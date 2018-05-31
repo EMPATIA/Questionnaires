@@ -243,15 +243,16 @@ class FormRepliesController extends Controller
 
             $form = Form::whereFormKey($request->json('form_key'))->firstOrFail();
 
-            if ($form->public){
-                $userKey = !empty($request->json('username')) ? $request->json('username') : "anonymous";
-            }else{
-                try {
-                    $userKey = ONE::verifyToken($request);
-                } catch(Exception $e){
-                    return response()->json(['error' => 'Unauthorized'], 401);
-                }
+            try {
+                $userKey = ONE::verifyToken($request);
+            } catch(Exception $e){
+                $userKey = null;
             }
+
+            if (empty($userKey) && $form->public)
+                $userKey = !empty($request->json('username')) ? $request->json('username') : "anonymous";
+            else if(!$form->public)
+                return response()->json(['error' => 'Unauthorized'], 401);
 
             if (FormReply::whereFormId($form->id)->whereCreatedBy($userKey)->exists() && $userKey != "anonymous"){
 

@@ -644,10 +644,30 @@ class QuestionsController extends Controller
             $form = $question->questionGroup->form->first();
             $dependencies = Question::whereQuestionGroupId($question->question_group_id)->where('position', '>', $question->position)
                 ->orderby('position', 'asc')
-                ->get()
-                ->toArray();
+                ->get();
+
+            //Get title from Forms Translation
+            foreach ($dependencies as $questionItem) {
+                if (!($questionItem->translation($request->header('LANG-CODE')))) {
+                    if (!$questionItem->translation($request->header('LANG-CODE-DEFAULT'))) {
+                        // return response()->json(['error' => 'No translation found'], 404);
+                    }
+                }
+                $questionTranslations = $questionItem->questionTranslations()->get();
+                $dependencies->translations = $questionTranslations;
+            }
+
 
             $questionGroups = QuestionGroup::where('id','>',$question->question_group_id)->whereFormId($form->id)->get();
+            foreach ($questionGroups as $questionItem) {
+                if (!($questionItem->translation($request->header('LANG-CODE')))) {
+                    if (!$questionItem->translation($request->header('LANG-CODE-DEFAULT'))) {
+                        // return response()->json(['error' => 'No translation found'], 404);
+                    }
+                }
+                $questionTranslations = $questionItem->questionTranslations()->get();
+                $questionGroups->translations = $questionTranslations;
+            }
 
             foreach ($questionGroups as $questionGroup){
                 $dependencies = array_merge($dependencies,$questionGroup->questions()->get()->toArray());
